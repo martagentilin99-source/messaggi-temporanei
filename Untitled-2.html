@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Messaggi temporanei eleganti</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- ✅ per mobile -->
+  <style>
+    /* Reset */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #fdfcfb, #e2d1c3);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px;
+      color: #333;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+      padding: 40px;
+      width: 100%;
+      max-width: 700px;
+      animation: fadeIn 0.6s ease;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 24px;
+      color: #4b5563;
+      text-align: center;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 16px;
+      font-size: 16px;
+      resize: vertical;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      background: #fafafa;
+    }
+    textarea:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 4px rgba(139,92,246,0.2);
+      outline: none;
+      background: #fff;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 14px 22px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.3s;
+      display: block;
+      width: 100%;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(99,102,241,0.3);
+    }
+
+    .messages { margin-top: 30px; }
+
+    .message {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 18px 22px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      animation: slideUp 0.4s ease;
+    }
+
+    .message span:first-child {
+      font-size: 16px;
+      font-weight: 500;
+      color: #1f2937;
+    }
+
+    .countdown {
+      font-size: 14px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .fadeout {
+      opacity: 0;
+      height: 0;
+      margin: 0;
+      padding: 0;
+      transition: all 0.8s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ✅ Responsive per cellulare */
+    @media (max-width: 480px) {
+      .container { padding: 20px; border-radius: 16px; }
+      h1 { font-size: 1.4rem; }
+      textarea { min-height: 100px; font-size: 14px; }
+      button { font-size: 14px; padding: 10px; }
+      .message { flex-direction: column; align-items: flex-start; }
+      .countdown { margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💬 Messaggi temporanei</h1>
+    <!-- Box senza placeholder -->
+    <textarea id="box"></textarea>
+    <button id="publish">Pubblica</button>
+    <div class="messages" id="messages"></div>
+  </div>
+
+  <script>
+    const box = document.getElementById('box');
+    const publishBtn = document.getElementById('publish');
+    const messagesDiv = document.getElementById('messages');
+
+    window.addEventListener('load', () => {
+      const saved = JSON.parse(localStorage.getItem('messages') || '[]');
+      const now = Date.now();
+      saved.forEach(m => {
+        const remaining = 60000 - (now - m.timestamp);
+        if (remaining > 0) {
+          showMessage(m.text, remaining, m.timestamp);
+        } else {
+          removeMessageFromStorage(m.timestamp);
+        }
+      });
+    });
+
+    publishBtn.addEventListener('click', () => {
+      const text = box.value.trim();
+      if (!text) return;
+      box.value = '';
+      const msgObj = { text, timestamp: Date.now() };
+      const saved = JSON.parse(localStorage.getItem('messages') || '[]');
+      saved.push(msgObj);
+      localStorage.setItem('messages', JSON.stringify(saved));
+      showMessage(text, 60000, msgObj.timestamp);
+    });
+
+    function showMessage(text, duration, timestamp) {
+      const msg = document.createElement('div');
+      msg.className = 'message';
+      const content = document.createElement('span');
+      content.textContent = text;
+      const countdownEl = document.createElement('span');
+      countdownEl.className = 'countdown';
+      msg.appendChild(content);
+      msg.appendChild(countdownEl);
+      messagesDiv.appendChild(msg);
+
+      let remaining = Math.floor(duration / 1000);
+      countdownEl.textContent = `⏱️ ${remaining}s`;
+
+      const intervalId = setInterval(() => {
+        remaining--;
+        countdownEl.textContent = `⏱️ ${remaining}s`;
+        if (remaining <= 0) clearInterval(intervalId);
+      }, 1000);
+
+      setTimeout(() => {
+        msg.classList.add('fadeout');
+        setTimeout(() => {
+          msg.remove();
+          removeMessageFromStorage(timestamp);
+        }, 800);
+      }, duration);
+    }
+
+    function removeMessageFromStorage(timestamp) {
+      const saved = JSON.parse(localStorage.getItem('messages') || '[]');
+      const updated = saved.filter(m => m.timestamp !== timestamp);
+      localStorage.setItem('messages', JSON.stringify(updated));
+    }
+  </script>
+</body>
+</html>
+
